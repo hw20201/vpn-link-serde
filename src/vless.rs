@@ -4,7 +4,7 @@
 //!
 //! **Required**: `id` (user UUID), `address` (host or IP), `port` (1–65535).
 //!
-//! **Query parameters** (optional, `application/x-www-form-urlencoded`): `encryption`, `flow` (e.g. `xtls-rprx-vision`), `security` (none/tls/xtls/reality), `type` (tcp/ws/grpc/h2/httpupgrade), `host`, `path`, `sni`, `fp`, `pbk` (Reality public key), `sid` (Reality short ID), `seed`, `headerType`.
+//! **Query parameters** (optional, `application/x-www-form-urlencoded`): `encryption`, `flow` (e.g. `xtls-rprx-vision`), `security` (none/tls/xtls/reality), `type` (tcp/ws/grpc/h2/httpupgrade), `host`, `path`, `sni`, `fp`, `pbk` (Reality public key), `sid` (Reality short ID), `seed`, `headerType`, `alpn` (comma-separated).
 //!
 //! **Fragment**: Decoded as remark; must be URL-encoded if it contains spaces or non-ASCII.
 //!
@@ -66,6 +66,9 @@ pub struct VLessConfig {
     /// Header type
     #[serde(skip_serializing_if = "Option::is_none")]
     pub header_type: Option<String>,
+    /// ALPN protocols, comma-separated in the link (e.g. `alpn=h2,http/1.1`)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub alpn: Option<Vec<String>>,
     /// Remark/description
     #[serde(skip_serializing_if = "Option::is_none")]
     pub remark: Option<String>,
@@ -144,6 +147,7 @@ impl ProtocolParser for VLess {
             sid: None,
             seed: None,
             header_type: None,
+            alpn: None,
             remark: fragment.map(|s| urlencoding::decode(s).unwrap_or_default().to_string()),
         };
 
@@ -165,6 +169,12 @@ impl ProtocolParser for VLess {
             config.sid = params.get("sid").cloned();
             config.seed = params.get("seed").cloned();
             config.header_type = params.get("headerType").cloned();
+            config.alpn = params.get("alpn").map(|s| {
+                s.split(',')
+                    .map(|v| v.trim().to_string())
+                    .filter(|v| !v.is_empty())
+                    .collect()
+            }).filter(|v: &Vec<String>| !v.is_empty());
         }
 
         Ok(VLess { config })
@@ -214,6 +224,11 @@ impl ProtocolParser for VLess {
         }
         if let Some(ref header_type) = self.config.header_type {
             query_params.push(format!("headerType={}", urlencoding::encode(header_type)));
+        }
+        if let Some(ref alpn) = self.config.alpn {
+            if !alpn.is_empty() {
+                query_params.push(format!("alpn={}", urlencoding::encode(&alpn.join(","))));
+            }
         }
 
         if !query_params.is_empty() {
