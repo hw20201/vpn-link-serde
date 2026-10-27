@@ -350,6 +350,20 @@ fn vless_invalid_port_not_u16() {
 }
 
 #[test]
+fn vless_trailing_slash_after_port_is_tolerated() {
+    let v = VLess::parse("vless://uuid@example.com:443/?security=tls&sni=s.example.com#n").unwrap();
+    assert_eq!(v.config.address, "example.com");
+    assert_eq!(v.config.port, 443);
+    assert_eq!(v.config.security.as_deref(), Some("tls"));
+}
+
+#[test]
+fn vless_nonempty_path_after_port_is_not_silently_dropped() {
+    let r = VLess::parse("vless://uuid@example.com:443/foo?security=tls#n");
+    assert!(r.is_err());
+}
+
+#[test]
 fn vless_round_trip_with_all_params() {
     let link = "vless://id@addr:8443?security=tls&sni=s.example.com#备注";
     let v = VLess::parse(link).unwrap();
