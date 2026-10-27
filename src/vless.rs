@@ -112,6 +112,14 @@ impl ProtocolParser for VLess {
             (main, query, fragment)
         };
 
+        // Providers commonly emit a trailing slash after the port
+        // (`host:443/?...`). The slash carries no path meaning in
+        // a VLESS link, so exactly one trailing slash is stripped
+        // here. A non-empty path after the slash is NOT stripped:
+        // it stays in the port string and fails port parsing
+        // explicitly, rather than being silently dropped.
+        let main_part = main_part.strip_suffix('/').unwrap_or(main_part);
+
         // Parse main part: id@host:port
         let at_pos = main_part
             .find('@')
