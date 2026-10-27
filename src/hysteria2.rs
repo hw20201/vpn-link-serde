@@ -122,6 +122,12 @@ impl ProtocolParser for Hysteria2 {
             (main, query, fragment)
         };
 
+        // Same trailing-slash tolerance as VLESS: providers emit
+        // `host:443/?...`, and exactly one trailing slash carries
+        // no path meaning. A non-empty path stays and fails port
+        // parsing explicitly instead of being silently dropped.
+        let main_part = main_part.strip_suffix('/').unwrap_or(main_part);
+
         // Parse main part: [password@]host:port
         let (password, host_port) = if let Some(at_pos) = main_part.find('@') {
             let pass = &main_part[..at_pos];
