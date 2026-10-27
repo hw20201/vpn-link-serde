@@ -502,6 +502,15 @@ fn trojan_invalid_port() {
 }
 
 #[test]
+#[test]
+fn trojan_trailing_slash_after_port_is_tolerated() {
+    let t = Trojan::parse("trojan://pw@example.com:443/?sni=s.example.com#T").unwrap();
+    assert_eq!(t.config.address, "example.com");
+    assert_eq!(t.config.port, 443);
+    assert_eq!(t.config.sni.as_deref(), Some("s.example.com"));
+}
+
+#[test]
 fn trojan_round_trip_encodes_password() {
     let link = "trojan://p@ss@host:8443#R";
     let t = Trojan::parse(link).unwrap();
@@ -574,6 +583,15 @@ fn hysteria2_invalid_port() {
     let r = Hysteria2::parse("hysteria2://h:99999");
     assert!(r.is_err());
     assert!(matches!(r, Err(ProtocolError::InvalidField(_))));
+}
+
+#[test]
+#[test]
+fn hysteria2_trailing_slash_after_port_is_tolerated() {
+    let h = Hysteria2::parse("hysteria2://pw@example.com:443/?sni=s.example.com#H").unwrap();
+    assert_eq!(h.config.host, "example.com");
+    assert_eq!(h.config.port, 443);
+    assert_eq!(h.config.sni.as_deref(), Some("s.example.com"));
 }
 
 #[test]
