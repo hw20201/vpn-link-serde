@@ -93,6 +93,12 @@ impl ProtocolParser for Trojan {
             (main, query, fragment)
         };
 
+        // Same trailing-slash tolerance as VLESS: providers emit
+        // `host:443/?...`, and exactly one trailing slash carries
+        // no path meaning. A non-empty path stays and fails port
+        // parsing explicitly instead of being silently dropped.
+        let main_part = main_part.strip_suffix('/').unwrap_or(main_part);
+
         // Parse main part: password@host:port
         let at_pos = main_part
             .find('@')
